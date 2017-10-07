@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>小鸟撞地球</title>
+    <style>
+        canvas {
+            border: 1px solid #ccc;
+        }
+    </style>
+</head>
+<body>
+<canvas width="800" height="600"></canvas>
+<script src="./js/sky.js"></script>
+<script src="./js/bird.js"></script>
+<script src="./js/land.js"></script>
+<script src="./js/pipe.js"></script>
+<script>
+    /*加载多张图片*/
+    function loadImg(imgsArr,callback){
+        var count = 0;
+        var list = {};
+        /*实现图片加载*/
+        for(var i = 0; i < imgsArr.length;i++){
+            var img = new Image;
+            img.src = './images/'+imgsArr[i]+'.png';
+            list[imgsArr[i]] = img;
+            /*确认图片已经加载*/
+            img.onload = function(){
+                count ++;
+                if(count == imgsArr.length){
+                    /*使用到加载好的图片*/
+                    callback(list);
+                }
+            }
+        }
+    }
+
+    /*1.获取canvas标签*/
+    var c = document.querySelector("canvas");
+    /*2.获取上下文*/
+    var ctx = c.getContext("2d");
+
+    loadImg(['sky','birds','land','pipe1','pipe2'],function(imgList){
+        var birdImg = imgList['birds'];
+        var skyImg = imgList['sky'];
+        var landImg = imgList['land'];
+        var bottomImg = imgList['pipe1'];
+        var topImg = imgList['pipe2'];
+
+
+        /*创建天空对象*/
+        var sky1 = new Sky({
+            ctx:ctx,
+            img:skyImg,
+            x:0,
+            y:0
+        });
+        var sky2 = new Sky({
+            ctx:ctx,
+            img:skyImg,
+            x:skyImg.width,
+            y:0
+        });
+        /*创建小鸟对象*/
+        var bird = new Bird({
+            ctx:ctx,
+            img:birdImg,
+            canvasX:100,
+            canvasY:100
+        });
+        /*创建陆地*/
+        var lands = [];
+        for(var i =0; i < 4;i++){
+            var land = new Land({
+                ctx:ctx,
+                img:landImg,
+                canvasX: i * landImg.width,
+                canvasY: c.height - landImg.height
+            });
+            lands.push(land);
+        }
+        /*创建管道*/
+        var pipes = [];
+        for(var i=0; i<7;i++){
+            var p = new Pipe({
+                ctx:ctx,
+                topImg:topImg,
+                bottomImg:bottomImg,
+                x:300 + i * (topImg.width * 3)
+            });
+            pipes.push(p);
+        }
+
+        /*定义起始时间和下一次事件触发的时间*/
+        var st = new Date();
+        var et = new Date();
+
+        function fly(){
+            st = new Date();
+            var offset = st - et;
+            et = st;
+
+            /*先清除之前绘制的内容:并不会清除路径*/
+            ctx.clearRect(0,0, c .width, c.height);
+
+            ctx.beginPath();
+
+            /*绘制天空*/
+            sky1.drawSky();
+            sky2.drawSky();
+            /*绘制小鸟*/
+            bird.drawBird(offset);
+            /*绘制管道*/
+            for(var i=0;i<pipes.length;i++){
+                pipes[i].drawPipe();
+            }
+            /*绘制陆地*/
+            for(var i=0;i<lands.length;i++){
+                lands[i].drawLand();
+            }
+
+            /*判断小鸟是否越过顶和底*/
+            if(bird.canvasY < 0 || bird.canvasY > c.height - landImg.height -birdImg.height){
+                return;
+            }
+            /*判断小鸟是否撞上管道*/
+            if(ctx.isPointInPath(bird.canvasX + birdImg.width / 3 / 2,bird.canvasY + birdImg.height / 2)){
+                return;
+            }
+
+            /*绘制文本*/
+            ctx.fillText("aaa",400,100);
+
+            /*调用requestAnimationFrame来循环动画*/
+            window.requestAnimationFrame(fly);
+        }
+        fly();
+
+        /*小鸟飞起来*/
+        c.onclick = function(){
+            bird.birdSpeed = -0.3;
+        }
+    })
+</script>
+</body>
+</html>
